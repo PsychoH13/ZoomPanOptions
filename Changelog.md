@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2022-07-09
+- Replace modes with setting individual key modifier combinations per scroll setting.
+
 ## [1.7.2] - 2022-07-02
 - FoundryVTT V10 compatibility
 - "Disable Zoom Rounding" had to be changed;  please inform me if it's worse now.
