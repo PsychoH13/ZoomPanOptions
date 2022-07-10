@@ -1,13 +1,13 @@
 # [Zoom/Pan Options](https://foundryvtt.com/packages/zoom-pan-options/)
 
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/itamarcu/ZoomPanOptions?style=for-the-badge) 
-![GitHub Releases](https://img.shields.io/github/downloads/itamarcu/ZoomPanOptions/latest/total?style=for-the-badge) 
-![GitHub All Releases](https://img.shields.io/github/downloads/itamarcu/ZoomPanOptions/total?style=for-the-badge&label=Downloads+total)  
-![Latest Supported Foundry Version](https://img.shields.io/endpoint?url=https://foundryshields.com/version?url=https://github.com/itamarcu/ZoomPanOptions/raw/master/module.json)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/PsychoH13/ZoomPanOptions?style=for-the-badge)
+![GitHub Releases](https://img.shields.io/github/downloads/PsychoH13/ZoomPanOptions/latest/total?style=for-the-badge)
+![GitHub All Releases](https://img.shields.io/github/downloads/PsychoH13/ZoomPanOptions/total?style=for-the-badge&label=Downloads+total)
+![Latest Supported Foundry Version](https://img.shields.io/endpoint?url=https://foundryshields.com/version?url=https://github.com/PsychoH13/ZoomPanOptions/raw/master/module.json)
 
 FoundryVTT module to change zooming and panning through the mouse or a touchpad. It has several settings, which can be toggled individually, and stored locally (per client).
 
-To install, browse for it in the module browser, or [directly copy the manifest link for the latest release](https://github.com/itamarcu/ZoomPanOptions/releases/latest/download/module.json).
+To install, browse for it in the module browser, or [directly copy the manifest link for the latest release](https://github.com/PsychoH13/ZoomPanOptions/releases/latest/download/module.json).
 
 # Features
 
@@ -24,27 +24,16 @@ To install, browse for it in the module browser, or [directly copy the manifest 
 
 ## Minimum/Maximum Zoom Override
 - Override for the minimum and maximum zoom scale limits. 3 is the Foundry default - you can't zoom in to get a bigger than a x3 scale closeup, or zoom out to get a smaller than a x0.3 "wide shot" of the scene. For example, if you change this to 6, you'll be able to zoom in twice as close and zoom out twice as far.  A value of 10 is usually enough to fill the screen with a single token or with the entire scene
- 
-## Pan/Zoom Mode:
-### "Default" mode
-- Same as the Foundry behavior
-- Will auto-detect touchpad movements (any "scroll" event that includes both vertical and horizontal components), and treat them as if the "Touchpad" mode was active
 
-### "Default Mouse" mode
-- Same as Default mode, but will avoid auto-detecting touchpad.  Pick this if the auto-detection doesn't work for you (and consider opening a bug ticket about it!).
+## Pan/Zoom Scroll Wheel Mode:
+You can choose any combination of Shift, Ctrl, Alt, and Meta, as well as no modifiers together with the scroll wheel to perform the following actions:
+- Zoom
+- Pan
+- Pan Horizontally (useful if your mouse doesn't support horizontal scrolling)
+- Rotate element
+- Snap Rotate element
 
-### "Touchpad" mode
-- Pan with two-finger drag on the touchpad.
-- Zoom with two-finger pinch or Ctrl+scroll.
-- Rotate with Shift+scroll and Ctrl+Shift+scroll.
-  (Note: if you're using a touchpad and you want to rotate a token, I recommend the [Alternative Rotation](https://github.com/itamarcu/AlternativeRotation) module - shift-dragging a token is easier than trying to accurately scroll the right amount/speed)
-- (Ctrl can be replaced with Cmd (mac) or WinKey (windows), as usual in Foundry)
-
-### "Alternative" mode
-- Pan with touchpad, or with mouse: vertical mouse scroll will pan up and down, and horizontal mouse scroll will pan left and right.
-- Zoom with two-finger pinch or Ctrl+scroll.
-- Rotate with Alt+Shift+scroll and Alt+Ctrl+scroll.
-- (Ctrl can be replaced with Cmd (mac) or WinKey (windows), as usual in Foundry)
+You can also disable any of these actions.
 
 ## Pan speed multiplier
 - Only used in touchpad and alternative modes. Multiplies pan speed. Defaults to 1, which should be close to the pan speed when right-click-dragging the canvas.
@@ -54,7 +43,7 @@ To install, browse for it in the module browser, or [directly copy the manifest 
 - Set to 0 for default Foundry behavior (5% zoom per mouse tick, always).
 - Set to 1 for zooming based on scroll delta, which should be similar to default zoom for most common mouse types, but will feel smoother for some touchpads.
 - Set to 0.1 for slower zooming, or 10 for faster zooming.
-- Technically you can give this a negative value to flip your zoom directions, if you're an oddball. 
+- Technically you can give this a negative value to flip your zoom directions, if you're an oddball.
 
 ## Invert vertical scroll
 - Only used in touchpad and alternative modes. If set to true, you will scroll up when dragging/scrolling down.
@@ -63,7 +52,7 @@ To install, browse for it in the module browser, or [directly copy the manifest 
 
 Thanks to mrkwnzl#7407 for the touchpad support and testing!
 
-Thanks to akrigline/Calego for merging with CanvasScroll and helping with libwrapper and workflows! 
+Thanks to akrigline/Calego for merging with CanvasScroll and helping with libwrapper and workflows!
 
 Thanks to TPNils for the touchpad auto-detection help!
 
