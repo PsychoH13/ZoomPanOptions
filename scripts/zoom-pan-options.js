@@ -24,51 +24,57 @@ function checkRotationRateLimit (layer) {
   return true
 }
 
-/**
- * note:  this is not perfect which is why it's opt-in.  see issue: https://github.com/itamarcu/ZoomPanOptions/issues/30
- */
-function isTouchpad (event) {
-  if (event.wheelDeltaY ? event.wheelDeltaY === -3 * event.deltaY : event.deltaMode === 0) {
-    // https://stackoverflow.com/a/62415754/1703463
-    return true
-  }
-  if (event.deltaX !== 0 && event.deltaY !== 0) {
-    // When moving on both X & Y axis, it can't be a mouse scroll
-    return true
-  }
-  const deltaX = String(event.deltaX).split('.')
-  const deltaY = String(event.deltaY).split('.')
-  // If there is a decimal point with 2 or more numbers after the point
-  // That means there is precise movement => touchpad
-  if ((deltaX.length > 1 && deltaX[1].length > 1) || deltaY.length > 1 && deltaY[1].length > 1) {
-    return true
-  }
-  // Probably a mouse.
-  return false
+function getSettingsByModifiers() {
+  let result = {}
+
+  const zoomModifiers = getSetting('zoom-modifier')
+  result[zoomModifiers] = 'zoom'
+
+  const rotateModifiers = getSetting('rotate-modifier')
+  if (!result[rotateModifiers])
+    result[rotateModifiers] = 'rotate'
+
+  const rotateSnapModifiers = getSetting('rotate-snap-modifier')
+  if (!result[rotateSnapModifiers])
+    result[rotateSnapModifiers] = 'rotate-snap'
+
+  const panModifiers = getSetting('pan-modifier')
+  if (!result[panModifiers])
+    result[panModifiers] = 'pan'
+
+  const horizontalPanModifiers = getSetting('horizontal-pan-modifier')
+  if (!result[horizontalPanModifiers])
+    result[horizontalPanModifiers] = 'horizontal-pan'
+
+  return result
+}
+
+function modifiersForEvent(event) {
+  let array = []
+  if (event.shiftKey)
+    array.push('shift')
+
+  if (event.ctrlKey)
+    array.push('ctrl')
+
+  if (event.altKey)
+    array.push('alt')
+
+  if (event.metaKey)
+    array.push('meta')
+
+  return array.join('-')
 }
 
 /**
  * (note: return value is meaningless here)
  */
 function _onWheel_Override (event) {
-  let mode
-  const shift = event.shiftKey
-  const alt = event.altKey
   const ctrlOrMeta = event.ctrlKey || event.metaKey  // meta key (cmd on mac, winkey in windows) will behave like ctrl
 
-  // Select scrolling mode
-  if (getSetting('auto-detect-touchpad')) {
-    const touchpad = isTouchpad(event)
-    if (!touchpad) {
-      mode = 'Mouse'
-    } else if (getSetting('pan-zoom-mode') === 'Alternative') {
-      mode = 'Alternative'
-    } else {
-      mode = 'Touchpad'
-    }
-  } else {
-    mode = getSetting('pan-zoom-mode')
-  }
+  const settingsByModifiers = getSettingsByModifiers()
+  const eventModifiers = modifiersForEvent(event)
+  const scrollMode = settingsByModifiers[eventModifiers]
 
   // Prevent zooming the entire browser window
   if (ctrlOrMeta) {
@@ -76,47 +82,37 @@ function _onWheel_Override (event) {
   }
 
   // Take no actions if the canvas is not hovered
-  if (!canvas?.ready) return
+  if (!canvas?.ready)
+    return
+
   const hover = document.elementFromPoint(event.clientX, event.clientY)
-  if (!hover || (hover.id !== 'board')) return
+  if (!hover || (hover.id !== 'board'))
+    return
+
   event.preventDefault()
 
   const layer = canvas.activeLayer
 
   // Case 1 - rotate stuff
   if (layer instanceof PlaceablesLayer) {
-    if (mode === 'Mouse' && (ctrlOrMeta || shift)) {
-      return checkRotationRateLimit(layer) && layer._onMouseWheel(event)
-    }
     const deltaY = event.wheelDelta !== undefined ? event.wheelDelta
       // wheelDelta is undefined in firefox
       : event.deltaY
-    if (mode === 'Touchpad' && shift) {
+
+    if (scrollMode == 'rotate' || scrollMode == 'rotate-snap') {
       return checkRotationRateLimit(layer) && layer._onMouseWheel({
         deltaY: deltaY,
-        shiftKey: shift && !ctrlOrMeta,
-      })
-    }
-    if (mode === 'Alternative' && alt && (ctrlOrMeta || shift)) {
-      return checkRotationRateLimit(layer) && layer._onMouseWheel({
-        deltaY: deltaY,
-        shiftKey: shift,
+        shiftKey: scrollMode == 'rotate-snap',
       })
     }
   }
 
   // Case 2 - zoom the canvas
-  // (written to be readable)
-  if (
-    mode === 'Mouse'
-    || (mode === 'Touchpad' && ctrlOrMeta)
-    || (mode === 'Alternative' && ctrlOrMeta)
-  ) {
+  if (scrollMode == 'zoom')
     return zoom(event)
-  }
 
   // Cast 3 - pan the canvas horizontally (shift+scroll)
-  if (mode === 'Alternative' && shift) {
+  if (scrollMode == 'horizontal-pan') {
     // noinspection JSSuspiciousNameCombination
     return panWithMultiplier({
       deltaX: event.deltaY,
@@ -124,7 +120,8 @@ function _onWheel_Override (event) {
   }
 
   // Case 4 - pan the canvas in the direction of the mouse/touchpad event
-  panWithMultiplier(event)
+  if (scrollMode == 'pan')
+    return panWithMultiplier(event)
 }
 
 /**
@@ -280,9 +277,31 @@ const migrateOldSettings = () => {
     game.settings.set('zoom-pan-options', 'pan-zoom-mode', 'Mouse')
   }
   if (mode === 'Default') {
-    console.log(`Zoom/Pan Options | Migrating old setting 'pan-zoom-mode': 'Default' to 'Mouse', plus 'auto-detect-touchpad': true`)
+    console.log(`Zoom/Pan Options | Migrating old setting 'pan-zoom-mode': 'Default' to 'Mouse'`)
     game.settings.set('zoom-pan-options', 'pan-zoom-mode', 'Mouse')
-    game.settings.set('zoom-pan-options', 'auto-detect-touchpad', true)
+  }
+
+  if (mode === 'Mouse') {
+    console.log(`Zoom/Pan Options | Migrating old setting 'zoom-pan-options': to zoom-modifier: '', rotate-modifier: 'ctrl', rotate-snap-modifier: 'shift', horizontal-pan-modifier: 'disabled', pan-modifier: 'disabled'`)
+    game.settings.set('zoom-modifier', '')
+    game.settings.set('rotate-modifier', 'ctrl')
+    game.settings.set('rotate-snap-modifier', 'shift')
+    game.settings.set('horizontal-pan-modifier', 'disabled')
+    game.settings.set('pan-modifier', 'disabled')
+  } else if (mode === 'Touchpad') {
+    console.log(`Zoom/Pan Options | Migrating old setting 'zoom-pan-options': to zoom-modifier: 'ctrl', rotate-modifier: 'shift', rotate-snap-modifier: 'shift-ctrl', horizontal-pan-modifier: 'disabled', pan-modifier: 'disabled'`)
+    game.settings.set('zoom-modifier', 'ctrl')
+    game.settings.set('rotate-modifier', 'shift')
+    game.settings.set('rotate-snap-modifier', 'shift-ctrl')
+    game.settings.set('horizontal-pan-modifier', 'disabled')
+    game.settings.set('pan-modifier', 'disabled')
+  } else if (mode === 'Alternative') {
+    console.log(`Zoom/Pan Options | Migrating old setting 'zoom-pan-options': to zoom-modifier: 'ctrl', rotate-modifier: 'shift-alt', rotate-snap-modifier: 'ctrl-alt', horizontal-pan-modifier: 'shift', pan-modifier: ''`)
+    game.settings.set('zoom-modifier', 'ctrl')
+    game.settings.set('rotate-modifier', 'shift-alt')
+    game.settings.set('rotate-snap-modifier', 'ctrl-alt')
+    game.settings.set('horizontal-pan-modifier', 'shift')
+    game.settings.set('pan-modifier', '')
   }
 }
 
@@ -325,33 +344,73 @@ Hooks.on('init', function () {
       CONFIG.Canvas.maxZoom = value
     },
   })
-  game.settings.register(MODULE_ID, 'pan-zoom-mode', {
-    name: 'Pan/zoom mode',
-    hint: `
-      Mouse: Standard foundry behavior. Zoom with mouse scroll. Rotate with Shift+scroll and Ctrl+scroll.
-||
-      Touchpad: Pan with two-finger drag. Zoom with two-finger pinch or Ctrl+scroll. Rotate with Shift+scroll and Ctrl+Shift+scroll.
-||
-      Alternative: Pan with two-finger drag or scroll or shift+scroll. Zoom with two-finger pinch or Ctrl+scroll. Rotate with Alt+Shift+scroll and Alt+Ctrl+scroll.
-    `,
+
+  const modifierChoices = {
+    '': '-',
+    'shift': 'Shift',
+    'ctrl': 'Ctrl',
+    'alt': 'Alt',
+    'meta': 'Meta',
+    'shift-ctrl': 'Shift + Ctrl',
+    'shift-alt': 'Shift + Alt',
+    'shift-meta': 'Shift + Meta',
+    'ctrl-alt': 'Ctrl + Alt',
+    'ctrl-meta': 'Ctrl + Meta',
+    'alt-meta': 'Alt + Meta',
+    'shift-ctrl-alt': 'Shift + Ctrl + Alt',
+    'shift-ctrl-meta': 'Shift + Ctrl + Meta',
+    'shift-alt-meta': 'Shift + Alt + Meta',
+    'ctrl-alt-meta': 'Ctrl + Alt + Meta',
+    'shift-ctrl-alt-meta': 'Shift + Ctrl + Alt + Meta',
+    'disabled': 'Disabled',
+  }
+
+  game.settings.register(MODULE_ID, 'zoom-modifier', {
+    name: 'Scroll to Zoom Modifiers',
+    hint: 'Key to hold to zoom.',
     scope: 'client',
     config: true,
     type: String,
-    choices: {
-      'Mouse': 'Mouse: standard foundry behavior',
-      'Touchpad': 'Touchpad: drag, pinch, rotate with Shift or Ctrl+Shift',
-      'Alternative': 'Alternative: can pan with Shift, rotate while holding Alt',
-    },
-    default: 'Mouse',
+    choices: modifierChoices,
+    default: '',
   })
-  game.settings.register(MODULE_ID, 'auto-detect-touchpad', {
-    name: 'Auto-detect touchpad',
-    hint: 'Will try to auto-detect touchpads;  going with either Mouse or Touchpad depending on result (or Alternative if it was selected).',
+  game.settings.register(MODULE_ID, 'pan-modifier', {
+    name: 'Scroll to Pan Modifiers',
+    hint: 'Key to hold to pan.',
     scope: 'client',
     config: true,
-    default: false,
-    type: Boolean,
+    type: String,
+    choices: modifierChoices,
+    default: 'disabled',
   })
+  game.settings.register(MODULE_ID, 'horizontal-pan-modifier', {
+    name: 'Scroll to Pan Horizontally Modifiers',
+    hint: 'Key to hold to pan horizontally. Useful if your mouse doesn\'t support horizontal scrolling.',
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'disabled',
+  })
+  game.settings.register(MODULE_ID, 'rotate-modifier', {
+    name: 'Scroll to Rotate Modifiers',
+    hint: 'Key to hold to rotate an item.',
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'ctrl',
+  })
+  game.settings.register(MODULE_ID, 'rotate-snap-modifier', {
+    name: 'Scroll to Snap Rotate Modifiers',
+    hint: 'Key to hold to rotate an item and snap to the grid.',
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'shift',
+  })
+
   game.settings.register(MODULE_ID, 'zoom-speed-multiplier', {
     name: 'Zoom speed',
     hint:
