@@ -18,13 +18,13 @@
       "flags": {}
     }
   ],
-  "url": "https://github.com/shemetz/ZoomPanOptions",
-  "manifest": "https://github.com/shemetz/ZoomPanOptions/raw/master/module.json",
-  "download": "https://github.com/shemetz/ZoomPanOptions/archive/master.zip",
-  "readme": "https://github.com/shemetz/ZoomPanOptions/blob/master/Readme.md",
-  "changelog": "https://github.com/shemetz/ZoomPanOptions/blob/master/Changelog.md",
-  "license": "https://github.com/shemetz/ZoomPanOptions/blob/master/License.txt",
-  "bugs": "https://github.com/shemetz/ZoomPanOptions/issues",
+  "url": "https://github.com/PsychoH13/ZoomPanOptions",
+  "manifest": "https://github.com/PsychoH13/ZoomPanOptions/raw/master/module.json",
+  "download": "https://github.com/PsychoH13/ZoomPanOptions/archive/master.zip",
+  "readme": "https://github.com/PsychoH13/ZoomPanOptions/blob/master/Readme.md",
+  "changelog": "https://github.com/PsychoH13/ZoomPanOptions/blob/master/Changelog.md",
+  "license": "https://github.com/PsychoH13/ZoomPanOptions/blob/master/License.txt",
+  "bugs": "https://github.com/PsychoH13/ZoomPanOptions/issues",
   "relationships": {
     "requires": [
       {
@@ -50,12 +50,12 @@
   "media": [
     {
       "type": "icon",
-      "url": "https://raw.githubusercontent.com/shemetz/ZoomPanOptions/master/metadata/icon.png",
+      "url": "https://raw.githubusercontent.com/PsychoH13/ZoomPanOptions/master/metadata/icon.png",
       "caption": "Zoom/Pan Options"
     },
     {
       "type": "cover",
-      "url": "https://raw.githubusercontent.com/shemetz/ZoomPanOptions/master/metadata/cover.png",
+      "url": "https://raw.githubusercontent.com/PsychoH13/ZoomPanOptions/master/metadata/cover.png",
       "caption": "Zoom/Pan Options"
     }
   ]
