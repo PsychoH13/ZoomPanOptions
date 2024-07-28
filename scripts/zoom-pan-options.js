@@ -58,6 +58,48 @@ function isTouchpad (event) {
   return false
 }
 
+function getSettingsByModifiers() {
+  let result = {}
+
+  const zoomModifiers = getSetting('zoom-modifier')
+  result[zoomModifiers] = 'zoom'
+
+  const rotateModifiers = getSetting('rotate-modifier')
+  if (!result[rotateModifiers])
+    result[rotateModifiers] = 'rotate'
+
+  const rotateSnapModifiers = getSetting('rotate-snap-modifier')
+  if (!result[rotateSnapModifiers])
+    result[rotateSnapModifiers] = 'rotate-snap'
+
+  const panModifiers = getSetting('pan-modifier')
+  if (!result[panModifiers])
+    result[panModifiers] = 'pan'
+
+  const horizontalPanModifiers = getSetting('horizontal-pan-modifier')
+  if (!result[horizontalPanModifiers])
+    result[horizontalPanModifiers] = 'horizontal-pan'
+
+  return result
+}
+
+function modifiersForEvent(event) {
+  let array = []
+  if (event.shiftKey)
+    array.push('shift')
+
+  if (event.ctrlKey)
+    array.push('ctrl')
+
+  if (event.altKey)
+    array.push('alt')
+
+  if (event.metaKey)
+    array.push('meta')
+
+  return array.join('-')
+}
+
 /**
  * (note: return value is meaningless here)
  */
@@ -67,19 +109,9 @@ function _onWheel_Override (event) {
   const alt = event.altKey
   const ctrlOrMeta = event.ctrlKey || event.metaKey  // meta key (cmd on mac, winkey in windows) will behave like ctrl
 
-  // Select scrolling mode
-  if (getSetting('auto-detect-touchpad')) {
-    const touchpad = isTouchpad(event)
-    if (!touchpad) {
-      mode = 'Mouse'
-    } else if (getSetting('pan-zoom-mode') === 'Alternative') {
-      mode = 'Alternative'
-    } else {
-      mode = 'Touchpad'
-    }
-  } else {
-    mode = getSetting('pan-zoom-mode')
-  }
+  const settingsByModifiers = getSettingsByModifiers()
+  const eventModifiers = modifiersForEvent(event)
+  const scrollMode = settingsByModifiers[eventModifiers]
 
   // Prevent zooming the entire browser window
   if (ctrlOrMeta) {
@@ -87,9 +119,13 @@ function _onWheel_Override (event) {
   }
 
   // Take no actions if the canvas is not hovered
-  if (!canvas?.ready) return
+  if (!canvas?.ready)
+    return
+
   const hover = document.elementFromPoint(event.clientX, event.clientY)
-  if (!hover || (hover.id !== 'board')) return
+  if (!hover || (hover.id !== 'board'))
+    return
+
   event.preventDefault()
 
   const layer = canvas.activeLayer
@@ -99,44 +135,29 @@ function _onWheel_Override (event) {
     // wheelDelta is undefined in firefox
     : event.deltaY
   event.delta = deltaY
-  if (mode === 'Mouse' && (ctrlOrMeta || shift)) {
-    return checkRotationRateLimit(layer) && checkZoomLock() && layer._onMouseWheel(event)
-  }
-  if (mode === 'Touchpad' && shift) {
-    return checkRotationRateLimit(layer) && checkZoomLock() && layer._onMouseWheel({
-      delta: deltaY,
-      deltaY: deltaY, // compatibility with Foundry versions before v10.291
-      shiftKey: shift && !ctrlOrMeta,
-    })
-  }
-  if (mode === 'Alternative' && alt && (ctrlOrMeta || shift)) {
-    return checkRotationRateLimit(layer) && checkZoomLock() && layer._onMouseWheel({
-      delta: deltaY,
-      deltaY: deltaY, // compatibility with Foundry versions before v10.291
-      shiftKey: shift,
-    })
-  }
 
-  // Case 2 - zoom the canvas
-  // (written to be readable)
-  if (
-    mode === 'Mouse'
-    || (mode === 'Touchpad' && ctrlOrMeta)
-    || (mode === 'Alternative' && ctrlOrMeta)
-  ) {
-    return zoom(event)
+  switch (scrollMode) {
+    case 'rotate':
+      return checkRotationRateLimit(layer) && checkZoomLock() && layer._onMouseWheel({
+        delta: deltaY,
+        deltaY: deltaY, // compatibility with Foundry versions before v10.291
+        shiftKey: false,
+      })
+    case 'rotate-snap':
+      return checkRotationRateLimit(layer) && checkZoomLock() && layer._onMouseWheel({
+        delta: deltaY,
+        deltaY: deltaY, // compatibility with Foundry versions before v10.291
+        shiftKey: true,
+      })
+    case 'zoom':
+      return zoom(event);
+    case 'horizontal-pan':
+      return panWithMultiplier({
+        deltaX: event.deltaY,
+      })
+    case 'pan':
+      return panWithMultiplier(event)
   }
-
-  // Cast 3 - pan the canvas horizontally (shift+scroll)
-  if (mode === 'Alternative' && shift) {
-    // noinspection JSSuspiciousNameCombination
-    return panWithMultiplier({
-      deltaX: event.deltaY,
-    })
-  }
-
-  // Case 4 - pan the canvas in the direction of the mouse/touchpad event
-  panWithMultiplier(event)
 }
 
 /**
@@ -443,20 +464,6 @@ const updateDragResistance = () => {
   }
 }
 
-const migrateOldSettings = () => {
-  const mode = getSetting('pan-zoom-mode')
-  if (mode === 'DefaultMouse') {
-    console.log(`Zoom/Pan Options | Migrating old setting 'pan-zoom-mode': 'DefaultMouse' to 'Mouse'`)
-    game.settings.set(MODULE_ID, 'pan-zoom-mode', 'Mouse')
-  }
-  if (mode === 'Default') {
-    console.log(
-      `Zoom/Pan Options | Migrating old setting 'pan-zoom-mode': 'Default' to 'Mouse', plus 'auto-detect-touchpad': true`)
-    game.settings.set(MODULE_ID, 'pan-zoom-mode', 'Mouse')
-    game.settings.set(MODULE_ID, 'auto-detect-touchpad', true)
-  }
-}
-
 const avoidLockViewIncompatibility = () => {
   Hooks.on('libWrapper.ConflictDetected', (p1, p2, target, frozenNames) => {
     if ((p1 === MODULE_ID && p2 === 'LockView') || p2 === MODULE_ID && p1 === 'LockView') {
@@ -522,18 +529,70 @@ Hooks.on('init', function () {
     default: 'Scaling',
     onChange: updateDragResistance,
   })
-  game.settings.register(MODULE_ID, 'pan-zoom-mode', {
-    name: localizeSetting('pan-zoom-mode', 'name'),
-    hint: localizeSetting('pan-zoom-mode', 'hint'),
+
+  const modifierChoices = {
+    '': localizeSetting('modifier-choices', 'nothing'),
+    'shift': localizeSetting('modifier-choices', 'shift'),
+    'ctrl': localizeSetting('modifier-choices', 'ctrl'),
+    'alt': localizeSetting('modifier-choices', 'alt'),
+    'meta': localizeSetting('modifier-choices', 'meta'),
+    'shift-ctrl': localizeSetting('modifier-choices', 'shift-ctrl'),
+    'shift-alt': localizeSetting('modifier-choices', 'shift-alt'),
+    'shift-meta': localizeSetting('modifier-choices', 'shift-meta'),
+    'ctrl-alt': localizeSetting('modifier-choices', 'ctrl-alt'),
+    'ctrl-meta': localizeSetting('modifier-choices', 'ctrl-meta'),
+    'alt-meta': localizeSetting('modifier-choices', 'alt-meta'),
+    'shift-ctrl-alt': localizeSetting('modifier-choices', 'shift-ctrl-alt'),
+    'shift-ctrl-meta': localizeSetting('modifier-choices', 'shift-ctrl-meta'),
+    'shift-alt-meta': localizeSetting('modifier-choices', 'shift-alt-meta'),
+    'ctrl-alt-meta': localizeSetting('modifier-choices', 'ctrl-alt-meta'),
+    'shift-ctrl-alt-meta': localizeSetting('modifier-choices', 'shift-ctrl-alt-meta'),
+    'disabled': localizeSetting('modifier-choices', 'disabled'),
+  }
+  game.settings.register(MODULE_ID, 'zoom-modifier', {
+    name: localizeSetting('zoom-modifier', 'name'),
+    hint: localizeSetting('zoom-modifier', 'hint'),
     scope: 'client',
     config: true,
     type: String,
-    choices: {
-      'Mouse': localizeSetting('pan-zoom-mode', 'choice_mouse'),
-      'Touchpad': localizeSetting('pan-zoom-mode', 'choice_touchpad'),
-      'Alternative': localizeSetting('pan-zoom-mode', 'choice_alternative'),
-    },
-    default: 'Mouse',
+    choices: modifierChoices,
+    default: '',
+  })
+  game.settings.register(MODULE_ID, 'pan-modifier', {
+    name: localizeSetting('pan-modifier', 'name'),
+    hint: localizeSetting('pan-modifier', 'hint'),
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'disabled',
+  })
+  game.settings.register(MODULE_ID, 'horizontal-pan-modifier', {
+    name: localizeSetting('horizontal-pan-modifier', 'name'),
+    hint: localizeSetting('horizontal-pan-modifier', 'hint'),
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'disabled',
+  })
+  game.settings.register(MODULE_ID, 'rotate-modifier', {
+    name: localizeSetting('rotate-modifier', 'name'),
+    hint: localizeSetting('rotate-modifier', 'hint'),
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'ctrl',
+  })
+  game.settings.register(MODULE_ID, 'rotate-snap-modifier', {
+    name: localizeSetting('rotate-snap-modifier', 'name'),
+    hint: localizeSetting('rotate-snap-modifier', 'hint'),
+    scope: 'client',
+    config: true,
+    type: String,
+    choices: modifierChoices,
+    default: 'shift',
   })
   game.settings.register(MODULE_ID, 'auto-detect-touchpad', {
     name: localizeSetting('auto-detect-touchpad', 'name'),
@@ -614,7 +673,6 @@ Hooks.on('init', function () {
     repeat: false,
   })
 
-  migrateOldSettings()
   avoidLockViewIncompatibility()
 })
 

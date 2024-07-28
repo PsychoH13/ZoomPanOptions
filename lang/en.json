@@ -20,12 +20,44 @@
         "choice_responsive": "Responsive: 0.1 constantly, makes it hard to ping (long press)",
         "choice_scaling": "Scaling: scales to always be about 1% of screen width"
       },
-      "pan-zoom-mode": {
-        "name": "Pan/zoom mode",
-        "hint": "Mouse: Standard foundry behavior. Zoom with mouse scroll. Rotate with Shift+scroll and Ctrl+scroll.\n||\nTouchpad: Pan with two-finger drag. Zoom with two-finger pinch or Ctrl+scroll. Rotate with Shift+scroll and Ctrl+Shift+scroll.\n||\nAlternative: Pan with two-finger drag or scroll or shift+scroll. Zoom with two-finger pinch or Ctrl+scroll. Rotate with Alt+Shift+scroll and Alt+Ctrl+scroll.",
-        "choice_mouse": "Mouse: standard foundry behavior",
-        "choice_touchpad": "Touchpad: drag, pinch, rotate with Shift or Ctrl+Shift",
-        "choice_alternative": "Alternative: can pan with Shift, rotate while holding Alt"
+      "modifier-choices": {
+        "nothing": "-",
+        "shift": "Shift",
+        "ctrl": "Ctrl",
+        "alt": "Alt",
+        "meta": "Meta",
+        "shift-ctrl": "Shift + Ctrl",
+        "shift-alt": "Shift + Alt",
+        "shift-meta": "Shift + Meta",
+        "ctrl-alt": "Ctrl + Alt",
+        "ctrl-meta": "Ctrl + Meta",
+        "alt-meta": "Alt + Meta",
+        "shift-ctrl-alt": "Shift + Ctrl + Alt",
+        "shift-ctrl-meta": "Shift + Ctrl + Meta",
+        "shift-alt-meta": "Shift + Alt + Meta",
+        "ctrl-alt-meta": "Ctrl + Alt + Meta",
+        "shift-ctrl-alt-meta": "Shift + Ctrl + Alt + Meta",
+        "disabled": "Disabled"
+      },
+      "zoom-modifier": {
+        "name": "Scroll to Zoom Modifiers",
+        "hint": "Key to hold while scrolling to zoom."
+      },
+      "pan-modifier": {
+        "name": "Scroll to Pan Modifiers",
+        "hint": "Key to hold while scrolling to pan."
+      },
+      "horizontal-pan-modifier": {
+        "name": "Scroll to Pan Horizontally Modifiers",
+        "hint": "Key to hold to pan horizontally. Useful if your mouse doesn't support horizontal scrolling."
+      },
+      "rotate-modifier": {
+        "name": "Scroll to Rotate Modifiers",
+        "hint": "Key to hold to rotate an item."
+      },
+      "rotate-snap-modifier": {
+        "name": "Scroll to Snap Rotate Modifiers",
+        "hint": "Key to hold to rotate an item and snap to the grid."
       },
       "auto-detect-touchpad": {
         "name": "Auto-detect touchpad",
